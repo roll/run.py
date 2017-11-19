@@ -18,7 +18,8 @@ def read(*paths):
 
 
 # Prepare
-PACKAGE = 'run.yml'
+PACKAGE = 'run'
+PACKAGE_NAME = 'run.yml'
 INSTALL_REQUIRES = [
     'six>=1.9,<2.0',
     'pyyaml>=3.1,<4.0',
@@ -30,13 +31,13 @@ TESTS_REQUIRE = [
     'tox',
 ]
 README = read('README.md')
-VERSION = read('run', 'VERSION')
+VERSION = read(PACKAGE, 'VERSION')
 PACKAGES = find_packages(exclude=['examples', 'tests'])
 
 
 # Run
 setup(
-    name=PACKAGE,
+    name=PACKAGE_NAME,
     version=VERSION,
     packages=PACKAGES,
     include_package_data=True,
