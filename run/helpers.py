@@ -25,12 +25,12 @@ def read_config():
         contents = file.read()
 
     # Read config
-    config = {'system': []}
+    config = {'run': []}
     raw_config = yaml.load(contents)
     for line in contents.split('\n'):
         for key, value in raw_config.items():
             if line.startswith(key):
-                config['system'].append({key: value})
+                config['run'].append({key: value})
 
     return config
 
