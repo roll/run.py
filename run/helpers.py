@@ -25,12 +25,18 @@ def read_config():
         contents = file.read()
 
     # Read config
+    comments = []
     config = {'run': []}
     raw_config = yaml.load(contents)
     for line in contents.split('\n'):
+        if line.startswith('# '):
+            comments.append(line.replace('# ', ''))
+            continue
         for key, value in raw_config.items():
             if line.startswith(key):
-                config['run'].append({key: value})
+                config['run'].append({key: {'code': value, 'desc': '\n'.join(comments)}})
+        if not line.startswith('# '):
+            comments = []
 
     return config
 

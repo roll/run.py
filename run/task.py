@@ -16,7 +16,16 @@ class Task(object):
     # Public
 
     def __init__(self, descriptor, parent=None, parent_type=None):
+
+        # Prepare
+        desc = None
         name, code = list(descriptor.items())[0]
+        if isinstance(code, dict):
+            desc = code['desc']
+            code = code['code']
+        self._parent = parent
+        if not parent:
+            desc = 'General run description'
 
         # Optional
         optional = False
@@ -34,6 +43,10 @@ class Task(object):
             if parent_type in ['parallel', 'multiplex']:
                 type = parent_type
             if name.startswith('(') and name.endswith(')'):
+                if len(self.parents) >= 2:
+                    message = 'Subtask descriptions and execution control not supported'
+                    helpers.print_message('general', message=message)
+                    exit(1)
                 name = name[1:-1]
                 type = 'parallel'
             if name.startswith('(') and name.endswith(')'):
@@ -42,16 +55,16 @@ class Task(object):
             for index, descriptor in enumerate(code):
                 number = index + 1
                 if not isinstance(descriptor, dict):
-                    descriptor = {str(number): descriptor}
-                descriptor = Task(descriptor, parent=self, parent_type=type)
-                childs.append(descriptor)
+                    descriptor = {'': descriptor}
+                child = Task(descriptor, parent=self, parent_type=type)
+                childs.append(child)
             code = None
 
         # Set attributes
         self._name = name
         self._code = code
         self._type = type
-        self._parent = parent
+        self._desc = desc
         self._childs = childs
         self._optional = optional
 
@@ -66,6 +79,10 @@ class Task(object):
     @property
     def type(self):
         return self._type
+
+    @property
+    def desc(self):
+        return self._desc
 
     @property
     def parent(self):
@@ -84,8 +101,8 @@ class Task(object):
         return bool(self._childs)
 
     @property
-    def executable(self):
-        return bool(self._parent)
+    def is_root(self):
+        return bool(not self._parent)
 
     @property
     def parents(self):
@@ -102,7 +119,8 @@ class Task(object):
     def qualified_name(self):
         names = []
         for parent in (self.parents + [self]):
-            names.append(parent.name)
+            if parent.name:
+                names.append(parent.name)
         return ' '.join(names)
 
     @property
@@ -125,6 +143,15 @@ class Task(object):
             tasks.append(task)
         return tasks
 
+    @property
+    def flatten_childs_with_composite(self):
+        tasks = []
+        for task in self.childs:
+            tasks.append(task)
+            if task.composite:
+                tasks.extend(task.flatten_childs_with_composite)
+        return tasks
+
     def run(self, argv, help=False):
         commands = []
 
@@ -140,15 +167,15 @@ class Task(object):
                 if task.name == argv[0]:
                     return task.run(argv[1:], help=help)
 
-        # Not executable task
-        if not self.executable:
-            if len(argv) > 0:
-                message = 'Task "%s" not found' % argv[0]
-                helpers.print_message('general', message=message)
-                exit(1)
-            for task in self.childs:
-                if task.type != 'variable':
-                    helpers.print_message('general', message=task.qualified_name)
+        # Bad task
+        if self.is_root and len(argv) > 0:
+            message = 'Task "%s" not found' % self.name
+            helpers.print_message('general', message=message)
+            exit(1)
+
+        # Root task
+        if self.is_root:
+            _print_help(self, self)
             return True
 
         # Collect setup commands
@@ -185,16 +212,9 @@ class Task(object):
 
         # Show help
         if help:
-            helpers.print_message('general', message=self.qualified_name)
-            if self.composite:
-                helpers.print_message('general', message='---')
-                for task in self.childs:
-                    message = task.qualified_name
-                    if task.optional:
-                        message += ' (optional)'
-                    helpers.print_message('general', message=message)
-            helpers.print_message('general', message='---')
-            print(execution_plan.explain())
+            task = self if len(self.parents) < 2 else self.parents[1]
+            selected_task = self
+            _print_help(task, selected_task, execution_plan)
             exit()
 
         # Execute commands
@@ -202,3 +222,31 @@ class Task(object):
         execution_plan.execute()
 
         return True
+
+
+# Internal
+
+def _print_help(task, selected_task, execution_plan=None):
+    helpers.print_message('general', message=task.qualified_name)
+    helpers.print_message('general', message='\n---')
+    if task.desc:
+        helpers.print_message('general', message='\nDescription\n')
+        print(task.desc)
+    if task.composite:
+        helpers.print_message('general', message='\nCommands\n')
+        for child in [task] + task.flatten_childs_with_composite:
+            if not child.name:
+                continue
+            if child.type == 'variable':
+                continue
+            message = child.qualified_name
+            if task.optional:
+                message += ' (optional)'
+            if child is selected_task:
+                message += ' (selected)'
+                helpers.print_message('general', message=message)
+            else:
+                print(message)
+    if execution_plan:
+        helpers.print_message('general', message='\nExecution Plan\n')
+        print(execution_plan.explain())
