@@ -135,11 +135,12 @@ class Task(object):
     @property
     def flatten_general_tasks(self):
         tasks = []
-        for task in self.childs or [self]:
-            if task.composite:
-                tasks.extend(task.flatten_general_tasks)
-                continue
-            tasks.append(task)
+        if self.type != 'variable':
+            for task in self.childs or [self]:
+                if task.composite:
+                    tasks.extend(task.flatten_general_tasks)
+                    continue
+                tasks.append(task)
         return tasks
 
     @property
@@ -178,10 +179,11 @@ class Task(object):
                     return task.run(argv[1:])
 
         # Delegate by abbrevation
-        if self.is_root:
-            task = self.find_child_task_by_abbrevation(argv[0])
-            if task:
-                return task.run(argv[1:])
+        if len(argv) > 0:
+            if self.is_root:
+                task = self.find_child_task_by_abbrevation(argv[0])
+                if task:
+                    return task.run(argv[1:])
 
         # Root task
         if self.is_root:
@@ -208,11 +210,11 @@ class Task(object):
             argv.pop()
             help = True
 
-        # Detect debug
-        debug = False
+        # Detect silent
+        silent = False
         if argv == ['!']:
             argv.pop()
-            debug = True
+            silent = True
 
         # Collect setup commands
         for task in self.flatten_setup_tasks:
@@ -261,7 +263,7 @@ class Task(object):
 
         # Execute commands
         os.environ['ARGUMENTS'] = ' '.join(argv)
-        execution_plan.execute(debug=debug)
+        execution_plan.execute(silent=silent)
 
         return True
 

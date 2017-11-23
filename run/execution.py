@@ -9,6 +9,7 @@ import sys
 import click
 import select
 import random
+import datetime
 import subprocess
 from . import helpers
 
@@ -41,31 +42,51 @@ class ExecutionPlan(object):
 
         return '\n'.join(lines)
 
-    def execute(self, debug=False):
+    def execute(self, silent=False):
 
         # Setup
+        value = None
         commands = []
+        variables = []
         for command in self._commands:
             if command.variable:
-                _execute_variable(command, debug=debug)
+                variables.append(command.variable)
+                value = _execute_variable(command, silent=silent)
                 continue
             commands.append(command)
 
+        if not commands:
+            if value is not None:
+                print(value)
+            return
+
+        if not silent:
+            start = datetime.datetime.now()
+            print('[run] Starting task execution')
+            for name in variables + ['ARGUMENTS']:
+                print('[run] Using "%s=%s"' % (name, os.environ.get(name)))
+
         # Directive
         if self._mode == 'directive':
-            _execute_directive(commands[0], debug=debug)
+            _execute_directive(commands[0], silent=silent)
 
         # Sequence
         elif self._mode == 'sequence':
-            _execute_sequence(commands, debug=debug)
+            _execute_sequence(commands, silent=silent)
 
         # Parallel
         elif self._mode == 'parallel':
-            _execute_parallel(commands, debug=debug)
+            _execute_parallel(commands, silent=silent)
 
         # Multiplex
         elif self._mode == 'multiplex':
-            _execute_multiplex(commands, debug=debug)
+            _execute_multiplex(commands, silent=silent)
+
+        if not silent:
+            stop = datetime.datetime.now()
+            time = round((stop - start).total_seconds(), 3)
+            message = '[run] Finished in %s seconds'
+            print(message % time)
 
 
 class Command(object):
@@ -96,25 +117,25 @@ class Command(object):
 
 # Internal
 
-def _execute_variable(command, debug=False):
+def _execute_variable(command, silent=False):
 
     # Execute process
     try:
-        if debug:
-            print('[debug] Running "%s"' % command.code)
         output = subprocess.check_output(command.code, shell=True)
     except subprocess.CalledProcessError:
         message = 'Command "%s" has failed' % command.code
         helpers.print_message('general', message=message)
         exit(1)
-    os.environ[command.variable] = output.decode('utf-8').strip()
+    value = output.decode('utf-8').strip()
+    os.environ[command.variable] = value
+    return value
 
 
-def _execute_directive(command, debug=False):
+def _execute_directive(command, silent=False):
 
     # Execute process
-    if debug:
-        print('[debug] Running "%s"' % command.code)
+    if not silent:
+        print('[run] Running "%s"' % command.code)
     returncode = subprocess.check_call(command.code, shell=True)
     if returncode != 0:
         message = 'Command "%s" has failed' % command.code
@@ -122,23 +143,23 @@ def _execute_directive(command, debug=False):
         exit(1)
 
 
-def _execute_sequence(commands, debug=False):
+def _execute_sequence(commands, silent=False):
 
     # Execute process
     for command in commands:
         if command.variable:
-            _execute_variable(command, debug=debug)
+            _execute_variable(command, silent=silent)
             continue
-        _execute_directive(command, debug=debug)
+        _execute_directive(command, silent=silent)
 
 
-def _execute_parallel(commands, debug=False):
+def _execute_parallel(commands, silent=False):
 
     # Start processes
     processes = []
     for command in commands:
-        if debug:
-            print('[debug] Running "%s"' % command.code)
+        if not silent:
+            print('[run] Running "%s"' % command.code)
         process = subprocess.Popen(command.code, shell=True, stdout=subprocess.PIPE)
         processes.append((command, process))
 
@@ -152,13 +173,13 @@ def _execute_parallel(commands, debug=False):
             exit(1)
 
 
-def _execute_multiplex(commands, debug=False):
+def _execute_multiplex(commands, silent=False):
 
     # Start processes
     processes = []
     for command in commands:
-        if debug:
-            print('[debug] Running "%s"' % command.code)
+        if not silent:
+            print('[run] Running "%s"' % command.code)
         process = subprocess.Popen(command.code, shell=True, stdout=subprocess.PIPE)
         poll = select.poll()
         processes.append((command, poll, random.choice(['red', 'green'])))
