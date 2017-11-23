@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import os
 from .execution import ExecutionPlan, Command
 from . import helpers
 
@@ -16,6 +15,7 @@ class Task(object):
     # Public
 
     def __init__(self, descriptor, parent=None, parent_type=None):
+        self._parent = parent
 
         # Prepare
         desc = None
@@ -23,9 +23,6 @@ class Task(object):
         if isinstance(code, dict):
             desc = code['desc']
             code = code['code']
-        self._parent = parent
-        if not parent:
-            desc = 'General run description'
 
         # Optional
         optional = False
@@ -59,6 +56,12 @@ class Task(object):
                 childs.append(child)
             code = None
 
+        # Description
+        if not parent:
+            desc = 'General run description'
+        if type == 'variable':
+            desc = 'Prints the variable'
+
         # Set attributes
         self._name = name
         self._code = code
@@ -66,6 +69,9 @@ class Task(object):
         self._desc = desc
         self._childs = childs
         self._optional = optional
+
+    def __repr__(self):
+        return self.qualified_name
 
     @property
     def name(self):
@@ -126,8 +132,11 @@ class Task(object):
     def flatten_setup_tasks(self):
         tasks = []
         for parent in self.parents:
-            # TODO: skip vars below
             for task in parent.childs:
+                if task is self:
+                    break
+                if task in self.parents:
+                    break
                 if task.type == 'variable':
                     tasks.append(task)
         return tasks
@@ -135,12 +144,11 @@ class Task(object):
     @property
     def flatten_general_tasks(self):
         tasks = []
-        if self.type != 'variable':
-            for task in self.childs or [self]:
-                if task.composite:
-                    tasks.extend(task.flatten_general_tasks)
-                    continue
-                tasks.append(task)
+        for task in self.childs or [self]:
+            if task.composite:
+                tasks.extend(task.flatten_general_tasks)
+                continue
+            tasks.append(task)
         return tasks
 
     @property
@@ -187,7 +195,7 @@ class Task(object):
 
         # Root task
         if self.is_root:
-            if len(argv) > 0:
+            if len(argv) > 0 and argv not in [['?'], ['!']]:
                 message = 'Task "%s" not found' % argv[0]
                 helpers.print_message('general', message=message)
                 exit(1)
@@ -237,18 +245,18 @@ class Task(object):
         # Normalize arguments
         arguments_index = None
         for index, command in enumerate(commands):
-            if '$ARGUMENTS' in command.code:
+            if '$RUNARGS' in command.code:
                 if not command.variable:
                     arguments_index = index
                     continue
             if arguments_index is not None:
-                command.code = command.code.replace('$ARGUMENTS', '')
+                command.code = command.code.replace('$RUNARGS', '')
 
         # Provide arguments
         if arguments_index is None:
             for index, command in enumerate(commands):
                 if not command.variable:
-                    command.code = '%s $ARGUMENTS' % command.code
+                    command.code = '%s $RUNARGS' % command.code
                     break
 
         # Create plan
@@ -262,8 +270,7 @@ class Task(object):
             exit()
 
         # Execute commands
-        os.environ['ARGUMENTS'] = ' '.join(argv)
-        execution_plan.execute(silent=silent)
+        execution_plan.execute(argv, silent=silent)
 
         return True
 
@@ -276,28 +283,25 @@ def _print_help(task, selected_task, execution_plan=None, filters=None):
     if task.desc:
         helpers.print_message('general', message='\nDescription\n')
         print(task.desc)
-    if task.composite:
-        helpers.print_message('general', message='\nCommands\n')
-        for child in [task] + task.flatten_childs_with_composite:
-            if not child.name:
-                continue
-            if child.type == 'variable':
-                continue
-            message = child.qualified_name
-            if child.optional:
-                message += ' (optional)'
-            if filters:
-                if child in filters['pick']:
-                    message += ' (picked)'
-                if child in filters['enable']:
-                    message += ' (enabled)'
-                if child in filters['disable']:
-                    message += ' (disabled)'
-            if child is selected_task:
-                message += ' (selected)'
-                helpers.print_message('general', message=message)
-            else:
-                print(message)
+    helpers.print_message('general', message='\nCommands\n')
+    for child in [task] + task.flatten_childs_with_composite:
+        if not child.name:
+            continue
+        message = child.qualified_name
+        if child.optional:
+            message += ' (optional)'
+        if filters:
+            if child in filters['pick']:
+                message += ' (picked)'
+            if child in filters['enable']:
+                message += ' (enabled)'
+            if child in filters['disable']:
+                message += ' (disabled)'
+        if child is selected_task:
+            message += ' (selected)'
+            helpers.print_message('general', message=message)
+        else:
+            print(message)
     if execution_plan:
         helpers.print_message('general', message='\nExecution Plan\n')
         print(execution_plan.explain())

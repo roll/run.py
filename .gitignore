@@ -71,3 +71,4 @@ venv3/
 tmp
 .projectile
 run.yml
+.env
