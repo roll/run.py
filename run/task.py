@@ -52,8 +52,7 @@ class Task(object):
             if name.startswith('(') and name.endswith(')'):
                 name = name[1:-1]
                 type = 'multiplex'
-            for index, descriptor in enumerate(code):
-                number = index + 1
+            for descriptor in code:
                 if not isinstance(descriptor, dict):
                     descriptor = {'': descriptor}
                 child = Task(descriptor, parent=self, parent_type=type)
@@ -152,20 +151,21 @@ class Task(object):
                 tasks.extend(task.flatten_childs_with_composite)
         return tasks
 
-    def run(self, argv, help=False):
-        commands = []
+    def find_child_tasks(self, name):
+        tasks = []
+        for task in self.flatten_general_tasks:
+            if task.name == name:
+                tasks.append(task)
+        return tasks
 
-        # Help requested
-        if len(argv) > 0:
-            if argv[-1] == '?':
-                argv.pop()
-                help = True
+    def run(self, argv):
+        commands = []
 
         # Delegate
         if len(argv) > 0:
             for task in self.childs:
                 if task.name == argv[0]:
-                    return task.run(argv[1:], help=help)
+                    return task.run(argv[1:])
 
         # Bad task
         if self.is_root and len(argv) > 0:
@@ -178,6 +178,22 @@ class Task(object):
             _print_help(self, self)
             return True
 
+        # Prepare filters
+        filters = {'pick': [], 'enable': [], 'disable': []}
+        for name, prefix in [['pick', '='], ['enable', '+'], ['disable', '-']]:
+            for arg in list(argv):
+                if arg.startswith(prefix):
+                    childs = self.find_child_tasks(arg[1:])
+                    if childs:
+                        filters[name].extend(childs)
+                        argv.remove(arg)
+
+        # Detect help
+        help = False
+        if argv == ['?']:
+            argv.pop()
+            help = True
+
         # Collect setup commands
         for task in self.flatten_setup_tasks:
             command = Command(task.qualified_name, task.code, variable=task.name)
@@ -185,10 +201,16 @@ class Task(object):
 
         # Collect general commands
         for task in self.flatten_general_tasks:
-            if not task.optional:
-                variable = task.name if task.type == 'variable' else None
-                command = Command(task.qualified_name, task.code, variable=variable)
-                commands.append(command)
+            if task not in filters['pick']:
+                if task.optional and task not in filters['enable']:
+                    continue
+                if task in filters['disable']:
+                    continue
+                if filters['pick']:
+                    continue
+            variable = task.name if task.type == 'variable' else None
+            command = Command(task.qualified_name, task.code, variable=variable)
+            commands.append(command)
 
         # Normalize arguments
         arguments_index = None
@@ -214,7 +236,7 @@ class Task(object):
         if help:
             task = self if len(self.parents) < 2 else self.parents[1]
             selected_task = self
-            _print_help(task, selected_task, execution_plan)
+            _print_help(task, selected_task, execution_plan, filters)
             exit()
 
         # Execute commands
@@ -226,7 +248,7 @@ class Task(object):
 
 # Internal
 
-def _print_help(task, selected_task, execution_plan=None):
+def _print_help(task, selected_task, execution_plan=None, filters=None):
     helpers.print_message('general', message=task.qualified_name)
     helpers.print_message('general', message='\n---')
     if task.desc:
@@ -240,8 +262,14 @@ def _print_help(task, selected_task, execution_plan=None):
             if child.type == 'variable':
                 continue
             message = child.qualified_name
-            if task.optional:
+            if child.optional:
                 message += ' (optional)'
+            if child in filters['pick']:
+                message += ' (picked)'
+            if child in filters['enable']:
+                message += ' (enabled)'
+            if child in filters['disable']:
+                message += ' (disabled)'
             if child is selected_task:
                 message += ' (selected)'
                 helpers.print_message('general', message=message)
