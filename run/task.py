@@ -158,19 +158,35 @@ class Task(object):
                 tasks.append(task)
         return tasks
 
+    def find_child_task_by_abbrevation(self, abbrevation):
+        letter = abbrevation[0]
+        abbrev = abbrevation[1:]
+        for task in self.childs:
+            if task.name.startswith(letter):
+                if abbrev:
+                    return task.find_child_task_by_abbrevation(abbrev)
+                return task
+        return None
+
     def run(self, argv):
         commands = []
 
-        # Delegate
+        # Delegate by name
         if len(argv) > 0:
             for task in self.childs:
                 if task.name == argv[0]:
                     return task.run(argv[1:])
 
+        # Delegate by abbrevation
+        if self.is_root:
+            task = self.find_child_task_by_abbrevation(argv[0])
+            if task:
+                return task.run(argv[1:])
+
         # Root task
         if self.is_root:
             if len(argv) > 0:
-                message = 'Task "%s" not found' % self.name
+                message = 'Task "%s" not found' % argv[0]
                 helpers.print_message('general', message=message)
                 exit(1)
             _print_help(self, self)
