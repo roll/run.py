@@ -186,6 +186,13 @@ class Task(object):
                 if task.name == argv[0]:
                     return task.run(argv[1:])
 
+        # Autocomplete
+        if '--run-complete' in argv:
+            for child in self.childs:
+                if child.name:
+                    print(child.name)
+            return True
+
         # Delegate by abbrevation
         if len(argv) > 0:
             if self.is_root:

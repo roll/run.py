@@ -9,7 +9,6 @@ import sys
 import click
 import select
 import random
-import dotenv
 import datetime
 import subprocess
 from . import helpers
@@ -64,6 +63,7 @@ class ExecutionPlan(object):
         os.environ['RUNARGS'] = ' '.join(argv)
         runvars = os.environ.get('RUNVARS')
         if runvars:
+            import dotenv
             dotenv.load_dotenv(runvars)
 
         # Print/exit variable
@@ -74,10 +74,11 @@ class ExecutionPlan(object):
 
         # Report
         if not silent:
+            items = []
             start = datetime.datetime.now()
-            print('[run] Starting task execution')
             for name in variables + ['RUNARGS']:
-                print('[run] Using "%s=%s"' % (name, os.environ.get(name)))
+                items.append('%s=%s' % (name, os.environ.get(name)))
+            print('[run] Prepared "%s"' % '; '.join(items))
 
         # Directive
         if self._mode == 'directive':
@@ -150,7 +151,7 @@ def _execute_directive(command, silent=False):
 
     # Execute process
     if not silent:
-        print('[run] Running "%s"' % command.code)
+        print('[run] Launched "%s"' % command.code)
     returncode = subprocess.check_call(command.code, shell=True)
     if returncode != 0:
         message = 'Command "%s" has failed' % command.code
@@ -174,7 +175,7 @@ def _execute_parallel(commands, silent=False):
     processes = []
     for command in commands:
         if not silent:
-            print('[run] Running "%s"' % command.code)
+            print('[run] Launched "%s"' % command.code)
         process = subprocess.Popen(command.code, shell=True, stdout=subprocess.PIPE)
         processes.append((command, process))
 
@@ -194,7 +195,7 @@ def _execute_multiplex(commands, silent=False):
     processes = []
     for command in commands:
         if not silent:
-            print('[run] Running "%s"' % command.code)
+            print('[run] Launched "%s"' % command.code)
         process = subprocess.Popen(command.code, shell=True, stdout=subprocess.PIPE)
         poll = select.poll()
         processes.append((command, poll, random.choice(['red', 'green'])))
