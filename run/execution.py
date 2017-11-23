@@ -41,31 +41,31 @@ class ExecutionPlan(object):
 
         return '\n'.join(lines)
 
-    def execute(self):
+    def execute(self, debug=False):
 
         # Setup
         commands = []
         for command in self._commands:
             if command.variable:
-                _execute_variable(command)
+                _execute_variable(command, debug=debug)
                 continue
             commands.append(command)
 
         # Directive
         if self._mode == 'directive':
-            _execute_directive(commands[0])
+            _execute_directive(commands[0], debug=debug)
 
         # Sequence
         elif self._mode == 'sequence':
-            _execute_sequence(commands)
+            _execute_sequence(commands, debug=debug)
 
         # Parallel
         elif self._mode == 'parallel':
-            _execute_parallel(commands)
+            _execute_parallel(commands, debug=debug)
 
         # Multiplex
         elif self._mode == 'multiplex':
-            _execute_multiplex(commands)
+            _execute_multiplex(commands, debug=debug)
 
 
 class Command(object):
@@ -96,10 +96,12 @@ class Command(object):
 
 # Internal
 
-def _execute_variable(command):
+def _execute_variable(command, debug=False):
 
     # Execute process
     try:
+        if debug:
+            print('[debug] Running "%s"' % command.code)
         output = subprocess.check_output(command.code, shell=True)
     except subprocess.CalledProcessError:
         message = 'Command "%s" has failed' % command.code
@@ -108,9 +110,11 @@ def _execute_variable(command):
     os.environ[command.variable] = output.decode('utf-8').strip()
 
 
-def _execute_directive(command):
+def _execute_directive(command, debug=False):
 
     # Execute process
+    if debug:
+        print('[debug] Running "%s"' % command.code)
     returncode = subprocess.check_call(command.code, shell=True)
     if returncode != 0:
         message = 'Command "%s" has failed' % command.code
@@ -118,21 +122,23 @@ def _execute_directive(command):
         exit(1)
 
 
-def _execute_sequence(commands):
+def _execute_sequence(commands, debug=False):
 
     # Execute process
     for command in commands:
         if command.variable:
-            _execute_variable(command)
+            _execute_variable(command, debug=debug)
             continue
-        _execute_directive(command)
+        _execute_directive(command, debug=debug)
 
 
-def _execute_parallel(commands):
+def _execute_parallel(commands, debug=False):
 
     # Start processes
     processes = []
     for command in commands:
+        if debug:
+            print('[debug] Running "%s"' % command.code)
         process = subprocess.Popen(command.code, shell=True, stdout=subprocess.PIPE)
         processes.append((command, process))
 
@@ -146,11 +152,13 @@ def _execute_parallel(commands):
             exit(1)
 
 
-def _execute_multiplex(commands):
+def _execute_multiplex(commands, debug=False):
 
     # Start processes
     processes = []
     for command in commands:
+        if debug:
+            print('[debug] Running "%s"' % command.code)
         process = subprocess.Popen(command.code, shell=True, stdout=subprocess.PIPE)
         poll = select.poll()
         processes.append((command, poll, random.choice(['red', 'green'])))
