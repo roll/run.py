@@ -238,7 +238,7 @@ class Task(object):
 
         # Collect general commands
         for task in self.flatten_general_tasks:
-            if task not in filters['pick']:
+            if task is not self and task not in filters['pick']:
                 if task.optional and task not in filters['enable']:
                     continue
                 if task in filters['disable']:
@@ -285,15 +285,33 @@ class Task(object):
 # Internal
 
 def _print_help(task, selected_task, execution_plan=None, filters=None):
+
+    # General
     helpers.print_message('general', message=task.qualified_name)
     helpers.print_message('general', message='\n---')
     if task.desc:
         helpers.print_message('general', message='\nDescription\n')
         print(task.desc)
-    helpers.print_message('general', message='\nCommands\n')
+
+    # Vars
+    header = False
+    for child in [task] + task.flatten_childs_with_composite:
+        if child.type == 'variable':
+            if not header:
+                helpers.print_message('general', message='\nVars\n')
+                header = True
+            print(child.qualified_name)
+
+    # Tasks
+    header = False
     for child in [task] + task.flatten_childs_with_composite:
         if not child.name:
             continue
+        if child.type == 'variable':
+            continue
+        if not header:
+            helpers.print_message('general', message='\nTasks\n')
+            header = True
         message = child.qualified_name
         if child.optional:
             message += ' (optional)'
@@ -309,6 +327,8 @@ def _print_help(task, selected_task, execution_plan=None, filters=None):
             helpers.print_message('general', message=message)
         else:
             print(message)
+
+    # Execution plan
     if execution_plan:
         helpers.print_message('general', message='\nExecution Plan\n')
         print(execution_plan.explain())
