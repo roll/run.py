@@ -47,18 +47,18 @@ setup(
     extras_require={'develop': TESTS_REQUIRE},
     entry_points={
         'console_scripts': [
-            'packspec-py = packspec.cli:cli',
+            'run = run.cli:cli',
         ]
     },
     zip_safe=False,
     long_description=README,
-    description='packspec-py',
+    description='Task runner for the 21st century. YML config. Shell commands. Sync/async tasks. And much more.',
     author='Evgeny Karev',
     author_email='eskarev@gmail.com',
-    url='https://github.com/packspec/packspec-py',
+    url='https://github.com/runyml/run.yml-py',
     license='MIT',
     keywords=[
-        'packspec',
+        'run.yml',
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
