@@ -23,7 +23,7 @@ def execute_variable(command, silent=False):
         message = 'Command "%s" has failed' % command.code
         helpers.print_message('general', message=message)
         exit(1)
-    return output.decode('utf-8').strip()
+    return output.decode().strip()
 
 
 def execute_directive(command, silent=False):
@@ -55,14 +55,16 @@ def execute_parallel(commands, silent=False):
     for command in commands:
         if not silent:
             print('[run] Launched "%s"' % command.code)
-        code = _wrap_command_code(command.code)
-        process = subprocess.Popen(code, shell=True, stdout=subprocess.PIPE)
+        code = _prepare_command_code(command.code)
+        process = subprocess.Popen(
+            code, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         processes.append((command, process))
 
     # Wait processes
     for command, process in processes:
         output, errput = process.communicate()
         _print_bytes(output)
+        _print_bytes(errput, stream=sys.stderr)
         if process.returncode != 0:
             message = 'Command "%s" has failed' % command.code
             helpers.print_message('general', message=message)
@@ -76,8 +78,8 @@ def execute_multiplex(commands, silent=False):
     for command in commands:
         if not silent:
             print('[run] Launched "%s"' % command.code)
-        code = _wrap_command_code(command.code)
-        process = subprocess.Popen(code, shell=True, stdout=subprocess.PIPE)
+        process = subprocess.Popen(
+            command.code, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         poll = select.poll()
         processes.append((command, poll, random.choice(['red', 'green'])))
         poll.register(process.stdout, select.POLLIN)
@@ -88,9 +90,10 @@ def execute_multiplex(commands, silent=False):
             break
         for index, (command, poll, color) in list(enumerate(processes)):
             if poll.poll(1):
-                line = process.stdout.readline().decode('utf-8')
+                line = process.stdout.readline()
                 click.echo(click.style('%s: ' % command.name, fg=color), nl=False)
                 _print_bytes(line)
+                _print_bytes(line, stream=sys.stderr)
             if process.poll() is not None:
                 processes.pop(index)
                 if process.returncode != 0:
@@ -101,10 +104,12 @@ def execute_multiplex(commands, silent=False):
 
 # Internal
 
-def _wrap_command_code(command):
+def _prepare_command_code(command):
+    # It allows to faky a TTY behaviour
     return 'script -qefc "%s" /dev/null' % command
 
 
-def _print_bytes(bytes):
-    stream = getattr(sys.stdout, 'buffer', sys.stdout)
-    stream.write(bytes)
+def _print_bytes(bytes, stream=sys.stdout):
+    buffer = getattr(stream, 'buffer', stream)
+    buffer.write(bytes)
+    stream.flush()
