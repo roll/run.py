@@ -51,15 +51,16 @@ def execute_parallel(commands, silent=False):
     for command in commands:
         if not silent:
             print('[run] Launched "%s"' % command.code)
-        process = subprocess.Popen(command.code,
-            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        pipe = None if command.primary else subprocess.PIPE
+        process = subprocess.Popen(command.code, shell=True, stdout=pipe, stderr=pipe)
         processes.append((command, process))
 
     # Wait processes
     for command, process in processes:
         output, errput = process.communicate()
-        _print_bytes(output)
-        _print_bytes(errput, stream=sys.stderr)
+        if not command.primary:
+            _print_bytes(output)
+            _print_bytes(errput, stream=sys.stderr)
         if process.returncode != 0:
             message = 'Command "%s" has failed' % command.code
             helpers.print_message('general', message=message)
