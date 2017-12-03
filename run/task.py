@@ -4,7 +4,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from .execution import ExecutionPlan, Command
+from .command import Command
+from .plan import Plan
 from . import helpers
 
 
@@ -267,24 +268,24 @@ class Task(object):
                     break
 
         # Create plan
-        execution_plan = ExecutionPlan(commands, self.type)
+        plan = Plan(commands, self.type)
 
         # Show help
         if help:
             task = self if len(self.parents) < 2 else self.parents[1]
             selected_task = self
-            _print_help(task, selected_task, execution_plan, filters)
+            _print_help(task, selected_task, plan, filters)
             exit()
 
         # Execute commands
-        execution_plan.execute(argv, silent=silent)
+        plan.execute(argv, silent=silent)
 
         return True
 
 
 # Internal
 
-def _print_help(task, selected_task, execution_plan=None, filters=None):
+def _print_help(task, selected_task, plan=None, filters=None):
 
     # General
     helpers.print_message('general', message=task.qualified_name)
@@ -329,6 +330,6 @@ def _print_help(task, selected_task, execution_plan=None, filters=None):
             print(message)
 
     # Execution plan
-    if execution_plan:
+    if plan:
         helpers.print_message('general', message='\nExecution Plan\n')
-        print(execution_plan.explain())
+        print(plan.explain())
