@@ -176,13 +176,14 @@ def _execute_parallel(commands, silent=False):
     for command in commands:
         if not silent:
             print('[run] Launched "%s"' % command.code)
-        process = subprocess.Popen(command.code, shell=True, stdout=subprocess.PIPE)
+        code = _wrap_command_code(command.code)
+        process = subprocess.Popen(code, shell=True, stdout=subprocess.PIPE)
         processes.append((command, process))
 
     # Wait processes
     for command, process in processes:
         output, errput = process.communicate()
-        sys.stdout.write(output.decode('utf-8'))
+        _print_bytes(output)
         if process.returncode != 0:
             message = 'Command "%s" has failed' % command.code
             helpers.print_message('general', message=message)
@@ -196,7 +197,8 @@ def _execute_multiplex(commands, silent=False):
     for command in commands:
         if not silent:
             print('[run] Launched "%s"' % command.code)
-        process = subprocess.Popen(command.code, shell=True, stdout=subprocess.PIPE)
+        code = _wrap_command_code(command.code)
+        process = subprocess.Popen(code, shell=True, stdout=subprocess.PIPE)
         poll = select.poll()
         processes.append((command, poll, random.choice(['red', 'green'])))
         poll.register(process.stdout, select.POLLIN)
@@ -208,11 +210,20 @@ def _execute_multiplex(commands, silent=False):
         for index, (command, poll, color) in list(enumerate(processes)):
             if poll.poll(1):
                 line = process.stdout.readline().decode('utf-8')
-                text = click.style('%s: %s' % (command.name, line), fg=color)
-                click.echo(text, nl=False)
+                click.echo(click.style('%s: ' % command.name, fg=color), nl=False)
+                _print_bytes(line)
             if process.poll() is not None:
                 processes.pop(index)
                 if process.returncode != 0:
                     message = 'Command "%s" has failed' % command.code
                     helpers.print_message('general', message=message)
                     exit(1)
+
+
+def _wrap_command_code(command):
+    return 'script -qefc "%s" /dev/null' % command
+
+
+def _print_bytes(bytes):
+    stream = getattr(sys.stdout, 'buffer', sys.stdout)
+    stream.write(bytes)
