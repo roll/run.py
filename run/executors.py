@@ -19,7 +19,7 @@ def execute_variable(command, silent=False):
     try:
         output = subprocess.check_output(command.code, shell=True)
     except subprocess.CalledProcessError:
-        message = 'Command "%s" has failed' % command.code
+        message = '[run] Command "%s" has failed' % command.code
         helpers.print_message('general', message=message)
         exit(1)
     return output.decode().strip()
@@ -32,7 +32,7 @@ def execute_directive(command, silent=False):
         print('[run] Launched "%s"' % command.code)
     returncode = subprocess.check_call(command.code, shell=True)
     if returncode != 0:
-        message = 'Command "%s" has failed' % command.code
+        message = '[run] Command "%s" has failed' % command.code
         helpers.print_message('general', message=message)
         exit(1)
 
@@ -45,26 +45,39 @@ def execute_sequence(commands, silent=False):
 
 
 def execute_parallel(commands, silent=False):
+    a=1
 
     # Start processes
     processes = []
     for command in commands:
         if not silent:
-            print('[run] Launched "%s"' % command.code)
+            message = '[run] Launched "%s"' % command.code
+            if command.primary:
+                message += ' (primary output) '
+            print(message)
         pipe = None if command.primary else subprocess.PIPE
         process = subprocess.Popen(command.code, shell=True, stdout=pipe, stderr=pipe)
         processes.append((command, process))
 
     # Wait processes
-    for command, process in processes:
-        output, errput = process.communicate()
-        if not command.primary:
-            _print_bytes(output)
-            _print_bytes(errput, stream=sys.stderr)
-        if process.returncode != 0:
-            message = 'Command "%s" has failed' % command.code
-            helpers.print_message('general', message=message)
-            exit(1)
+    while processes:
+        for index, (command, process) in enumerate(processes):
+            try:
+                output, errput = process.communicate(timeout=1000)
+            except subprocess.TimeoutExpired:
+                continue
+            if process.returncode != 0:
+                message = '[run] Command "%s" has failed' % command.code
+                helpers.print_message('general', message=message)
+            if not command.primary:
+                _print_bytes(output)
+                _print_bytes(errput, stream=sys.stderr)
+            if process.returncode != 0:
+                for command, process in processes:
+                    process.kill()
+                exit(1)
+            processes.pop(index)
+            break
 
 
 def execute_multiplex(commands, silent=False):
@@ -95,7 +108,7 @@ def execute_multiplex(commands, silent=False):
             # Process is finished
             if process.poll() is not None:
                 if process.returncode != 0:
-                    message = 'Command "%s" has failed' % command.code
+                    message = '[run] Command "%s" has failed' % command.code
                     helpers.print_message('general', message=message)
                     exit(1)
                 processes.pop(index)
