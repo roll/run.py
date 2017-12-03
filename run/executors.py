@@ -55,7 +55,7 @@ def execute_parallel(commands, silent=False):
     for command in commands:
         if not silent:
             print('[run] Launched "%s"' % command.code)
-        code = _prepare_command_code(command.code)
+        code = _wrap_command_code(command.code)
         process = subprocess.Popen(
             code, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         processes.append((command, process))
@@ -78,8 +78,9 @@ def execute_multiplex(commands, silent=False):
     for command in commands:
         if not silent:
             print('[run] Launched "%s"' % command.code)
+        code = _wrap_command_code(command.code)
         process = subprocess.Popen(
-            command.code, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            code, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         poll = select.poll()
         processes.append((command, poll, random.choice(['red', 'green'])))
         poll.register(process.stdout, select.POLLIN)
@@ -93,7 +94,6 @@ def execute_multiplex(commands, silent=False):
                 line = process.stdout.readline()
                 click.echo(click.style('%s: ' % command.name, fg=color), nl=False)
                 _print_bytes(line)
-                _print_bytes(line, stream=sys.stderr)
             if process.poll() is not None:
                 processes.pop(index)
                 if process.returncode != 0:
@@ -104,8 +104,7 @@ def execute_multiplex(commands, silent=False):
 
 # Internal
 
-def _prepare_command_code(command):
-    # It allows to faky a TTY behaviour
+def _wrap_command_code(command):
     return 'script -qefc "%s" /dev/null' % command
 
 
