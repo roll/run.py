@@ -8,11 +8,14 @@ import io
 import os
 import yaml
 import click
+from itertools import cycle
 
 
 # Module API
 
 def read_config():
+    """Read config and returns as root task descriptor
+    """
 
     # Bad file
     if not os.path.isfile('run.yml'):
@@ -42,5 +45,32 @@ def read_config():
 
 
 def print_message(type, **data):
+    """Print message based on type
+    """
     text = click.style(data['message'], bold=True)
     click.echo(text)
+
+
+def iter_colors():
+    """Iterate over colors in cycle
+    """
+    for color in cycle(_COLORS):
+        yield color
+
+
+# Internal
+
+_COLORS = [
+    'cyan',
+    'yellow',
+    'green',
+    'magenta',
+    'red',
+    'blue',
+    'intense_cyan',
+    'intense_yellow',
+    'intense_green',
+    'intense_magenta',
+    'intense_red',
+    'intense_blue',
+]

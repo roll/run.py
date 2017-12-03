@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import sys
 import click
 import select
-import random
 import subprocess
 from . import helpers
 
@@ -42,9 +41,6 @@ def execute_sequence(commands, silent=False):
 
     # Execute process
     for command in commands:
-        if command.variable:
-            execute_variable(command, silent=silent)
-            continue
         execute_directive(command, silent=silent)
 
 
@@ -55,16 +51,16 @@ def execute_parallel(commands, silent=False):
     for command in commands:
         if not silent:
             print('[run] Launched "%s"' % command.code)
-        code = _wrap_command_code(command.code)
-        process = subprocess.Popen(
-            code, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        pipe = None if command.primary else subprocess.PIPE
+        process = subprocess.Popen(command.code, shell=True, stdout=pipe, stderr=pipe)
         processes.append((command, process))
 
     # Wait processes
     for command, process in processes:
         output, errput = process.communicate()
-        _print_bytes(output)
-        _print_bytes(errput, stream=sys.stderr)
+        if not command.primary:
+            _print_bytes(output)
+            _print_bytes(errput, stream=sys.stderr)
         if process.returncode != 0:
             message = 'Command "%s" has failed' % command.code
             helpers.print_message('general', message=message)
@@ -73,39 +69,43 @@ def execute_parallel(commands, silent=False):
 
 def execute_multiplex(commands, silent=False):
 
-    # Start processes
+    # Launch processes
     processes = []
+    color_iterator = helpers.iter_colors()
     for command in commands:
         if not silent:
             print('[run] Launched "%s"' % command.code)
-        code = _wrap_command_code(command.code)
-        process = subprocess.Popen(
-            code, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        poll = select.poll()
-        processes.append((command, poll, random.choice(['red', 'green'])))
-        poll.register(process.stdout, select.POLLIN)
+        color = next(color_iterator)
+        process = subprocess.Popen(command.code,
+            shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        listener = select.poll()
+        listener.register(process.stdout, select.POLLIN)
+        processes.append((command, process, listener, color))
 
     # Wait processes
-    while True:
-        if not processes:
-            break
-        for index, (command, poll, color) in list(enumerate(processes)):
-            if poll.poll(1):
+    while processes:
+        for index, (command, process, listener, color) in enumerate(processes):
+
+            # Process is writing
+            if listener.poll(1000):
                 line = process.stdout.readline()
-                click.echo(click.style('%s: ' % command.name, fg=color), nl=False)
+                _print_prefix(command.name, color)
                 _print_bytes(line)
+
+            # Process is finished
             if process.poll() is not None:
-                processes.pop(index)
                 if process.returncode != 0:
                     message = 'Command "%s" has failed' % command.code
                     helpers.print_message('general', message=message)
                     exit(1)
+                processes.pop(index)
+                break
 
 
 # Internal
 
-def _wrap_command_code(command):
-    return 'script -qefc "%s" /dev/null' % command
+def _print_prefix(prefix, color, max_prefix_width=None):
+    click.echo(click.style('%s | ' % prefix, fg=color), nl=False)
 
 
 def _print_bytes(bytes, stream=sys.stdout):
