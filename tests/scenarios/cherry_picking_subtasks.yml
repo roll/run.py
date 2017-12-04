@@ -1,3 +1,5 @@
+# Config
+
 task!:
   - subtask1:
     - nested1: echo 1
@@ -8,6 +10,8 @@ task!:
     - /nested3: echo 5
 
 ---
+
+# Scenarios
 
 - command: run task
   output: |

@@ -1,7 +1,11 @@
+# Config
+
 VARIABLE1: echo 1
 VARIABLE2: echo $VARIABLE1
 
 ---
+
+# Scenarios
 
 - command: run VARIABLE1
   output: |

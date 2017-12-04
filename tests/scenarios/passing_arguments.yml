@@ -1,9 +1,13 @@
+# Config
+
 task!:
   - subtask1: echo 1
   - subtask2: echo $RUNARGS
   - subtask2: echo 3
 
 ---
+
+# Scenarios
 
 - command: run task
   output: |

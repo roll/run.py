@@ -1,9 +1,13 @@
+# Config
+
 task1!: echo 1
 task2!:
   - echo 2
   - echo 3
 
 ---
+
+# Scenarios
 
 - command: run task1
   output: |
