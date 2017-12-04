@@ -14,11 +14,11 @@ from . import helpers
 
 # Module API
 
-def execute_sync(commands, environ, silent=False):
+def execute_sync(commands, environ, quiet=False):
     for command in commands:
 
         # Log process
-        if not command.variable and not silent:
+        if not command.variable and not quiet:
             print('[run] Launched "%s"' % command.code)
 
         # Create process
@@ -37,7 +37,7 @@ def execute_sync(commands, environ, silent=False):
             environ[command.variable] = output.decode().strip()
 
 
-def execute_async(commands, environ, multiplex=False, silent=False):
+def execute_async(commands, environ, multiplex=False, quiet=False):
 
     # Launch processes
     processes = []
@@ -45,7 +45,7 @@ def execute_async(commands, environ, multiplex=False, silent=False):
     for command in commands:
 
         # Log process
-        if not silent:
+        if not quiet:
             print('[run] Launched "%s"' % command.code)
 
         # Create process

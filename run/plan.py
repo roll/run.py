@@ -41,7 +41,7 @@ class Plan(object):
 
         return '\n'.join(lines)
 
-    def execute(self, argv, silent=False):
+    def execute(self, argv, quiet=False):
         commands = copy(self._commands)
 
         # Variables
@@ -53,7 +53,7 @@ class Plan(object):
                 varnames.append(command.variable)
                 commands.remove(command)
         executors.execute_sync(variables,
-            environ=os.environ, silent=silent)
+            environ=os.environ, quiet=quiet)
         if not commands:
             print(os.environ[varnames[-1]])
             return
@@ -66,7 +66,7 @@ class Plan(object):
             dotenv.load_dotenv(runvars)
 
         # Log prepared
-        if not silent:
+        if not quiet:
             items = []
             start = datetime.datetime.now()
             for name in varnames + ['RUNARGS']:
@@ -76,25 +76,25 @@ class Plan(object):
         # Directive
         if self._mode == 'directive':
             executors.execute_sync(commands,
-                environ=os.environ, silent=silent)
+                environ=os.environ, quiet=quiet)
 
         # Sequence
         elif self._mode == 'sequence':
             executors.execute_sync(commands,
-                environ=os.environ, silent=silent)
+                environ=os.environ, quiet=quiet)
 
         # Parallel
         elif self._mode == 'parallel':
             executors.execute_async(commands,
-                environ=os.environ, silent=silent)
+                environ=os.environ, quiet=quiet)
 
         # Multiplex
         elif self._mode == 'multiplex':
             executors.execute_async(commands,
-                environ=os.environ, multiplex=True, silent=silent)
+                environ=os.environ, multiplex=True, quiet=quiet)
 
         # Log finished
-        if not silent:
+        if not quiet:
             stop = datetime.datetime.now()
             time = round((stop - start).total_seconds(), 3)
             message = '[run] Finished in %s seconds'

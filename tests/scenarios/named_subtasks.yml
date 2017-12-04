@@ -1,4 +1,4 @@
-task:
+task!:
   - subtask1: echo 1
   - subtask2: echo 2
 

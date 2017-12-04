@@ -15,7 +15,7 @@ class Task(object):
 
     # Public
 
-    def __init__(self, descriptor, options={}, parent=None, parent_type=None):
+    def __init__(self, descriptor, options={}, parent=None, parent_type=None, quiet=False):
         self._parent = parent
 
         # Prepare
@@ -30,6 +30,11 @@ class Task(object):
         if name.startswith('/'):
             name = name[1:]
             optional = True
+
+        # Quiet
+        if name.strip(')').endswith('!'):
+            name = ''.join(name.rsplit('!', 1))
+            quiet = True
 
         # Name/type/childs
         childs = []
@@ -53,7 +58,7 @@ class Task(object):
             for descriptor in code:
                 if not isinstance(descriptor, dict):
                     descriptor = {'': descriptor}
-                child = Task(descriptor, parent=self, parent_type=type)
+                child = Task(descriptor, parent=self, parent_type=type, quiet=quiet)
                 childs.append(child)
             code = None
 
@@ -68,6 +73,7 @@ class Task(object):
         self._code = code
         self._type = type
         self._desc = desc
+        self._quiet = quiet
         self._childs = childs
         self._options = options
         self._optional = optional
@@ -94,6 +100,10 @@ class Task(object):
     @property
     def parent(self):
         return self._parent
+
+    @property
+    def quiet(self):
+        return self._quiet
 
     @property
     def childs(self):
@@ -220,12 +230,6 @@ class Task(object):
             argv.pop()
             help = True
 
-        # Detect silent
-        silent = False
-        if argv and argv[-1] == '!':
-            argv.remove('!')
-            silent = True
-
         # Collect setup commands
         for task in self.flatten_setup_tasks:
             command = Command(task.qualified_name, task.code, variable=task.name)
@@ -272,7 +276,7 @@ class Task(object):
             exit()
 
         # Execute commands
-        plan.execute(argv, silent=silent)
+        plan.execute(argv, quiet=self.quiet)
 
         return True
 
