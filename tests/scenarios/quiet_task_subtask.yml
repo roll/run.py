@@ -9,6 +9,11 @@ quiet_task!:
   - subtask2: echo 2
 
 ---
+
+# Options
+
+streamline: true
+
 ---
 
 # Scenarios

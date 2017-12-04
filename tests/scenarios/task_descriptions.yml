@@ -6,6 +6,11 @@ task:
   - echo 2
 
 ---
+
+# Options
+
+streamline: true
+
 ---
 
 # Scenarios

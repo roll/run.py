@@ -38,7 +38,7 @@ def execute_sync(commands, environ, quiet=False):
             environ[command.variable] = output.decode().strip()
 
 
-def execute_async(commands, environ, multiplex=False, quiet=False):
+def execute_async(commands, environ, multiplex=False, quiet=False, streamline=False):
 
     # Launch processes
     processes = []
@@ -51,9 +51,8 @@ def execute_async(commands, environ, multiplex=False, quiet=False):
             sys.stdout.flush()
 
         # Create process
-        color = next(color_iterator)
         process = subprocess.Popen(
-            _prepare_command_code(command.code), bufsize=64, env=environ,
+            _apply_faketty(command.code, streamline=streamline), bufsize=64, env=environ,
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         # Create listener
@@ -61,6 +60,7 @@ def execute_async(commands, environ, multiplex=False, quiet=False):
         listener.register(process.stdout, select.POLLIN)
 
         # Register process
+        color = next(color_iterator)
         processes.append((command, process, listener, color))
 
     # Wait processes
@@ -92,8 +92,10 @@ def execute_async(commands, environ, multiplex=False, quiet=False):
 
 # Internal
 
-def _prepare_command_code(code):
-    return "python -m run.faketty /bin/bash -c %s" % shlex.quote(code)
+def _apply_faketty(code, streamline=False):
+    if not streamline:
+        code = "python -m run.faketty /bin/bash -c %s" % shlex.quote(code)
+    return code
 
 
 def _print_line(line, name, color, multiplex=False, quiet=False):

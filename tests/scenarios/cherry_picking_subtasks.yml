@@ -10,6 +10,11 @@ task!:
     - /nested3: echo 5
 
 ---
+
+# Options
+
+streamline: true
+
 ---
 
 # Scenarios

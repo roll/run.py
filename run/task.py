@@ -58,7 +58,8 @@ class Task(object):
             for descriptor in code:
                 if not isinstance(descriptor, dict):
                     descriptor = {'': descriptor}
-                child = Task(descriptor, parent=self, parent_type=type, quiet=quiet)
+                child = Task(descriptor,
+                    options=options, parent=self, parent_type=type, quiet=quiet)
                 childs.append(child)
             code = None
 
@@ -108,6 +109,10 @@ class Task(object):
     @property
     def childs(self):
         return self._childs
+
+    @property
+    def options(self):
+        return self._options
 
     @property
     def optional(self):
@@ -276,7 +281,9 @@ class Task(object):
             exit()
 
         # Execute commands
-        plan.execute(argv, quiet=self.quiet)
+        plan.execute(argv,
+            quiet=self.quiet,
+            streamline=self.options.get('streamline'))
 
         return True
 

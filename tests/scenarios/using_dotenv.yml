@@ -6,6 +6,11 @@ task:
   - echo $DOTENV
 
 ---
+
+# Options
+
+streamline: true
+
 ---
 
 # Scenarios
