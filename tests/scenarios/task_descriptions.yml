@@ -1,0 +1,16 @@
+# Config
+
+# Description
+task:
+  - echo 1
+  - echo 2
+
+---
+---
+
+# Scenarios
+
+- command: run task ?
+  operator: contains
+  output: |
+    Description

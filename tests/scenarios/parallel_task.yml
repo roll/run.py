@@ -1,0 +1,16 @@
+# Config
+
+(task!):
+  - sleep 3 && echo 1
+  - sleep 2 && echo 2
+
+---
+---
+
+# Scenarios
+
+- command: run task
+  faster: 4
+  output: |
+    1
+    2

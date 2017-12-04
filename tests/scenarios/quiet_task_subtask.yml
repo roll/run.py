@@ -1,0 +1,27 @@
+# Config
+
+default_task:
+  - subtask1: echo 1
+  - subtask2: echo 2
+
+quiet_task!:
+  - subtask1: echo 1
+  - subtask2: echo 2
+
+---
+---
+
+# Scenarios
+
+- command: run default_task
+  operator: contains
+  output: |
+    [run] Launched "echo 1 $RUNARGS"
+    1
+    [run] Launched "echo 2"
+    2
+
+- command: run quiet_task
+  output: |
+    1
+    2

@@ -1,0 +1,18 @@
+# Config
+
+task:
+  - subtask1: echo 1
+  - subtask2: echo 2
+
+---
+---
+
+# Scenarios
+
+- command: run
+  operator: contains
+  output: |
+    run (selected)
+    run task
+    run task subtask1
+    run task subtask2

@@ -19,7 +19,8 @@ def execute_sync(commands, environ, quiet=False):
 
         # Log process
         if not command.variable and not quiet:
-            print('[run] Launched "%s"' % command.code)
+            sys.stdout.write('[run] Launched "%s"\n' % command.code)
+            sys.stdout.flush()
 
         # Create process
         stdout = None if not command.variable else subprocess.PIPE
@@ -46,7 +47,8 @@ def execute_async(commands, environ, multiplex=False, quiet=False):
 
         # Log process
         if not quiet:
-            print('[run] Launched "%s"' % command.code)
+            sys.stdout.write('[run] Launched "%s"\n' % command.code)
+            sys.stdout.flush()
 
         # Create process
         color = next(color_iterator)
@@ -71,13 +73,15 @@ def execute_async(commands, environ, multiplex=False, quiet=False):
                     line = process.stdout.readline()
                     if not line:
                         break
-                    _print_line(line, command.name, color, multiplex=multiplex)
+                    _print_line(line, command.name, color,
+                        multiplex=multiplex, quiet=quiet)
 
             # Process finish
             if process.poll() is not None:
                 if process.returncode != 0:
                     for line in process.stdout.readlines():
-                        _print_line(line, command.name, color, multiplex=multiplex)
+                        _print_line(line, command.name, color,
+                            multiplex=multiplex, quiet=quiet)
                     message = '[run] Command "%s" has failed' % command.code
                     helpers.print_message('general', message=message)
                     exit(1)
@@ -92,8 +96,9 @@ def _prepare_command_code(code):
     return "python -m run.faketty /bin/bash -c %s" % shlex.quote(code)
 
 
-def _print_line(line, name, color, multiplex=False):
-    if multiplex:
+def _print_line(line, name, color, multiplex=False, quiet=False):
+    line = line.replace(b'\r\n', b'\n')
+    if multiplex and not quiet:
         click.echo(click.style('%s | ' % name, fg=color), nl=False)
     buffer = getattr(sys.stdout, 'buffer', sys.stdout)
     buffer.write(line)

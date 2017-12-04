@@ -1,0 +1,23 @@
+# Config
+
+task!:
+  - first: echo 1
+  - second: echo 2
+
+---
+---
+
+# Scenarios
+
+- command: run t
+  output: |
+    1
+    2
+
+- command: run tf
+  output: |
+    1
+
+- command: run ts
+  output: |
+    2

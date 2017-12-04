@@ -1,0 +1,15 @@
+# Config
+
+RUNVARS: echo tests/fixtures/dotenv.env
+
+task:
+  - echo $DOTENV
+
+---
+---
+
+# Scenarios
+
+# - command: run task
+  # output: |
+    # dotenv

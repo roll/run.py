@@ -4,6 +4,7 @@ VARIABLE1: echo 1
 VARIABLE2: echo $VARIABLE1
 
 ---
+---
 
 # Scenarios
 
