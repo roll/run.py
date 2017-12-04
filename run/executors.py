@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import sys
 import click
+import shlex
 import select
 import subprocess
 from . import helpers
@@ -45,18 +46,15 @@ def execute_sequence(commands, silent=False):
 
 
 def execute_parallel(commands, silent=False):
-    a=1
 
     # Start processes
     processes = []
     for command in commands:
         if not silent:
-            message = '[run] Launched "%s"' % command.code
-            if command.primary:
-                message += ' (primary output) '
-            print(message)
-        pipe = None if command.primary else subprocess.PIPE
-        process = subprocess.Popen(command.code, shell=True, stdout=pipe, stderr=pipe)
+            print('[run] Launched "%s"' % command.code)
+        process = subprocess.Popen(
+            _prepare_command_code(command.code),
+            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         processes.append((command, process))
 
     # Wait processes
@@ -69,9 +67,8 @@ def execute_parallel(commands, silent=False):
             if process.returncode != 0:
                 message = '[run] Command "%s" has failed' % command.code
                 helpers.print_message('general', message=message)
-            if not command.primary:
-                _print_bytes(output)
-                _print_bytes(errput, stream=sys.stderr)
+            _print_bytes(output)
+            _print_bytes(errput, stream=sys.stderr)
             if process.returncode != 0:
                 for command, process in processes:
                     process.kill()
@@ -89,7 +86,8 @@ def execute_multiplex(commands, silent=False):
         if not silent:
             print('[run] Launched "%s"' % command.code)
         color = next(color_iterator)
-        process = subprocess.Popen(command.code,
+        process = subprocess.Popen(
+            _prepare_command_code(command.code),
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         listener = select.poll()
         listener.register(process.stdout, select.POLLIN)
@@ -116,6 +114,10 @@ def execute_multiplex(commands, silent=False):
 
 
 # Internal
+
+def _prepare_command_code(code):
+    return "python -m run.faketty /bin/bash -c %s" % shlex.quote(code)
+
 
 def _print_prefix(prefix, color, max_prefix_width=None):
     click.echo(click.style('%s | ' % prefix, fg=color), nl=False)
