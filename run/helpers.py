@@ -13,24 +13,28 @@ from itertools import cycle
 
 # Module API
 
-def read_config():
+def read_config(path='run.yml'):
     """Read config and returns as root task descriptor
     """
 
     # Bad file
-    if not os.path.isfile('run.yml'):
-        message = 'No "run.yml" found'
+    if not os.path.isfile(path):
+        message = 'No "%s" found' % path
         print_message('general', message=message)
         exit(1)
 
     # Read contents
-    with io.open('run.yml', encoding='utf-8') as file:
+    with io.open(path, encoding='utf-8') as file:
         contents = file.read()
 
     # Read config
     comments = []
     config = {'run': []}
-    raw_config = yaml.load(contents)
+    documents = list(yaml.load_all(contents))
+    raw_config = documents[0]
+    options = {}
+    if len(documents) > 1:
+        options = documents[1]
     for line in contents.split('\n'):
         if line.startswith('# '):
             comments.append(line.replace('# ', ''))
@@ -41,7 +45,7 @@ def read_config():
         if not line.startswith('# '):
             comments = []
 
-    return config
+    return config, options
 
 
 def print_message(type, **data):

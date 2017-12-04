@@ -1,0 +1,22 @@
+task:
+  - subtask1: echo 1
+  - subtask2: echo $RUNARGS
+  - subtask2: echo 3
+
+---
+
+- command: run task
+  output: |
+    1
+
+    3
+
+- command: run task 2
+  output: |
+    1
+    2
+    3
+
+- command: run task subtask2 2
+  output: |
+    2

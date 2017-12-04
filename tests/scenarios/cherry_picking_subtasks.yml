@@ -1,0 +1,41 @@
+task:
+  - subtask1:
+    - nested1: echo 1
+    - nested2: echo 2
+  - subtask2:
+    - nested1: echo 3
+    - nested2: echo 4
+    - /nested3: echo 5
+
+---
+
+- command: run task
+  output: |
+    1
+    2
+    3
+    4
+
+- command: run task +nested3
+  output: |
+    1
+    2
+    3
+    4
+    5
+
+- command: run task -nested1
+  output: |
+    2
+    4
+
+- command: run task =nested2
+  output: |
+    2
+    4
+
+- command: run task -nested1 +nested3
+  output: |
+    2
+    4
+    5

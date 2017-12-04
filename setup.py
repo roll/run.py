@@ -25,6 +25,7 @@ INSTALL_REQUIRES = [
     'pyyaml>=3.1,<4.0',
     'click>=6.0,<7.0',
     'emoji>=0.4,<2.0',
+    'pexpect>=4.3,<5.0',
     'python-dotenv>=0.7,<2.0',
 ]
 TESTS_REQUIRE = [

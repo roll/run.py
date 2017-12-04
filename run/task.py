@@ -15,7 +15,7 @@ class Task(object):
 
     # Public
 
-    def __init__(self, descriptor, parent=None, parent_type=None):
+    def __init__(self, descriptor, options={}, parent=None, parent_type=None):
         self._parent = parent
 
         # Prepare
@@ -69,6 +69,7 @@ class Task(object):
         self._type = type
         self._desc = desc
         self._childs = childs
+        self._options = options
         self._optional = optional
 
     def __repr__(self):
@@ -187,13 +188,6 @@ class Task(object):
                 if task.name == argv[0]:
                     return task.run(argv[1:])
 
-        # Autocomplete
-        if '--run-complete' in argv:
-            for child in self.childs:
-                if child.name:
-                    print(child.name)
-            return True
-
         # Delegate by abbrevation
         if len(argv) > 0:
             if self.is_root:
@@ -228,8 +222,8 @@ class Task(object):
 
         # Detect silent
         silent = False
-        if argv == ['!']:
-            argv.pop()
+        if argv and argv[-1] == '!':
+            argv.remove('!')
             silent = True
 
         # Collect setup commands
@@ -279,6 +273,21 @@ class Task(object):
 
         # Execute commands
         plan.execute(argv, silent=silent)
+
+        return True
+
+    def complete(self, argv):
+
+        # Delegate by name
+        if len(argv) > 0:
+            for task in self.childs:
+                if task.name == argv[0]:
+                    task.complete(argv[1:])
+
+        # Autocomplete
+        for child in self.childs:
+            if child.name:
+                print(child.name)
 
         return True
 

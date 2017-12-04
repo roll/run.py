@@ -1,0 +1,17 @@
+task:
+  - subtask1: echo 1
+  - subtask2: echo 2
+  - /subtask3: echo 3
+
+---
+
+- command: run task
+  output: |
+    1
+    2
+
+- command: run task +subtask3
+  output: |
+    1
+    2
+    3

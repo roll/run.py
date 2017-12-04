@@ -12,6 +12,27 @@ from . import helpers
 # Main program
 
 if __name__ == '__main__':
-    config = helpers.read_config()
-    tasks = Task(config)
-    tasks.run(sys.argv[1:])
+    argv = sys.argv[1:]
+
+    # Path
+    path = 'run.yml'
+    if '--run-path' in argv:
+        index = argv.index('--run-path')
+        path = argv.pop(index + 1)
+        argv.pop(index)
+
+    # Complete
+    complete = False
+    if '--run-complete' in argv:
+        argv.remove('--run-complete')
+        complete = True
+
+    # Prepare
+    config, options = helpers.read_config(path)
+    task = Task(config, options=options)
+
+    # Run
+    if complete:
+        task.complete(argv)
+        exit()
+    task.run(argv)
