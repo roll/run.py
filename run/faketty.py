@@ -13,3 +13,5 @@ import pexpect
 child = pexpect.spawn(sys.argv[1], sys.argv[2:])
 child.logfile_read = sys.stdout.buffer
 child.expect(pexpect.EOF)
+child.close()
+exit(child.exitstatus)

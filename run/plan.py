@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import os
 import datetime
+from copy import copy
 from . import executors
 
 
@@ -41,18 +42,21 @@ class Plan(object):
         return '\n'.join(lines)
 
     def execute(self, argv, silent=False):
+        commands = copy(self._commands)
 
-        # Setup
-        value = None
-        commands = []
+        # Variables
+        varnames = []
         variables = []
-        for command in self._commands:
+        for command in copy(commands):
             if command.variable:
-                value = executors.execute_variable(command, silent=silent)
-                os.environ[command.variable] = value
-                variables.append(command.variable)
-                continue
-            commands.append(command)
+                variables.append(command)
+                varnames.append(command.variable)
+                commands.remove(command)
+        executors.execute_sync(variables,
+            environ=os.environ, silent=silent)
+        if not commands:
+            print(os.environ[varnames[-1]])
+            return
 
         # Update environ
         os.environ['RUNARGS'] = ' '.join(argv)
@@ -61,37 +65,35 @@ class Plan(object):
             import dotenv
             dotenv.load_dotenv(runvars)
 
-        # Print/exit variable
-        if not commands:
-            if value is not None:
-                print(value)
-            return
-
-        # Report
+        # Log prepared
         if not silent:
             items = []
             start = datetime.datetime.now()
-            for name in variables + ['RUNARGS']:
+            for name in varnames + ['RUNARGS']:
                 items.append('%s=%s' % (name, os.environ.get(name)))
             print('[run] Prepared "%s"' % '; '.join(items))
 
         # Directive
         if self._mode == 'directive':
-            executors.execute_directive(commands[0], silent=silent)
+            executors.execute_sync(commands,
+                environ=os.environ, silent=silent)
 
         # Sequence
         elif self._mode == 'sequence':
-            executors.execute_sequence(commands, silent=silent)
+            executors.execute_sync(commands,
+                environ=os.environ, silent=silent)
 
         # Parallel
         elif self._mode == 'parallel':
-            executors.execute_parallel(commands, silent=silent)
+            executors.execute_async(commands,
+                environ=os.environ, silent=silent)
 
         # Multiplex
         elif self._mode == 'multiplex':
-            executors.execute_multiplex(commands, silent=silent)
+            executors.execute_async(commands,
+                environ=os.environ, multiplex=True, silent=silent)
 
-        # Report
+        # Log finished
         if not silent:
             stop = datetime.datetime.now()
             time = round((stop - start).total_seconds(), 3)
