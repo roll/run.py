@@ -221,7 +221,7 @@ class Task(object):
 
         # Root task
         if self.is_root:
-            if len(argv) > 0 and argv not in [['?'], ['!']]:
+            if len(argv) > 0 and argv != ['?']:
                 message = 'Task "%s" not found' % argv[0]
                 helpers.print_message('general', message=message)
                 exit(1)
@@ -285,8 +285,7 @@ class Task(object):
         # Show help
         if help:
             task = self if len(self.parents) < 2 else self.parents[1]
-            selected_task = self
-            _print_help(task, selected_task, plan, filters)
+            _print_help(task, self, plan, filters)
             exit()
 
         # Execute commands
