@@ -302,7 +302,7 @@ class Task(object):
         if len(argv) > 0:
             for task in self.childs:
                 if task.name == argv[0]:
-                    task.complete(argv[1:])
+                    return task.complete(argv[1:])
 
         # Autocomplete
         for child in self.childs:
