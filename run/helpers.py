@@ -14,8 +14,6 @@ from itertools import cycle
 # Module API
 
 def read_config(path='run.yml'):
-    """Read config and returns as root task descriptor
-    """
 
     # Bad file
     if not os.path.isfile(path):
@@ -23,18 +21,15 @@ def read_config(path='run.yml'):
         print_message('general', message=message)
         exit(1)
 
-    # Read contents
+    # Read documents
     with io.open(path, encoding='utf-8') as file:
         contents = file.read()
+    documents = list(yaml.load_all(contents))
 
-    # Read config
+    # Get config
     comments = []
     config = {'run': []}
-    documents = list(yaml.load_all(contents))
     raw_config = documents[0]
-    options = {}
-    if len(documents) > 1:
-        options = documents[1] or {}
     for line in contents.split('\n'):
         if line.startswith('# '):
             comments.append(line.replace('# ', ''))
@@ -45,19 +40,20 @@ def read_config(path='run.yml'):
         if not line.startswith('# '):
             comments = []
 
+    # Get options
+    options = {}
+    if len(documents) > 1:
+        options = documents[1] or {}
+
     return config, options
 
 
 def print_message(type, **data):
-    """Print message based on type
-    """
     text = click.style(data['message'], bold=True)
     click.echo(text)
 
 
 def iter_colors():
-    """Iterate over colors in cycle
-    """
     for color in cycle(_COLORS):
         yield color
 
