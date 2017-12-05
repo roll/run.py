@@ -32,9 +32,5 @@ class Command(object):
         self._code = value
 
     @property
-    def primary(self):
-        return '$RUNARGS' in self._code
-
-    @property
     def variable(self):
         return self._variable
