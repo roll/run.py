@@ -34,7 +34,7 @@ def read_config(path='run.yml'):
     raw_config = documents[0]
     options = {}
     if len(documents) > 1:
-        options = documents[1]
+        options = documents[1] or {}
     for line in contents.split('\n'):
         if line.startswith('# '):
             comments.append(line.replace('# ', ''))

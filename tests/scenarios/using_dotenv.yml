@@ -2,7 +2,7 @@
 
 RUNVARS: echo tests/fixtures/dotenv.env
 
-task:
+task!:
   - echo $DOTENV
 
 ---
@@ -15,6 +15,6 @@ streamline: true
 
 # Scenarios
 
-# - command: run task
-  # output: |
-    # dotenv
+- command: run task
+  output: |
+    dotenv
