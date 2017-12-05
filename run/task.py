@@ -283,7 +283,7 @@ class Task(object):
         # Execute commands
         plan.execute(argv,
             quiet=self.quiet,
-            streamline=self.options.get('streamline'))
+            faketty=self.options.get('faketty'))
 
         return True
 

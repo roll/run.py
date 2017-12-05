@@ -12,8 +12,6 @@ quiet_task!:
 
 # Options
 
-streamline: true
-
 ---
 
 # Scenarios

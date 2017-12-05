@@ -41,7 +41,7 @@ class Plan(object):
 
         return '\n'.join(lines)
 
-    def execute(self, argv, quiet=False, streamline=False):
+    def execute(self, argv, quiet=False, faketty=False):
         commands = copy(self._commands)
 
         # Variables
@@ -86,12 +86,12 @@ class Plan(object):
         # Parallel
         elif self._mode == 'parallel':
             executors.execute_async(commands,
-                environ=os.environ, quiet=quiet, streamline=streamline)
+                environ=os.environ, quiet=quiet, faketty=faketty)
 
         # Multiplex
         elif self._mode == 'multiplex':
             executors.execute_async(commands,
-                environ=os.environ, multiplex=True, quiet=quiet, streamline=streamline)
+                environ=os.environ, multiplex=True, quiet=quiet, faketty=faketty)
 
         # Log finished
         if not quiet:

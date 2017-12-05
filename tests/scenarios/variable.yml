@@ -7,8 +7,6 @@ VARIABLE2: echo $VARIABLE1
 
 # Options
 
-streamline: true
-
 ---
 
 # Scenarios
