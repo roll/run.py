@@ -6,10 +6,10 @@ from __future__ import unicode_literals
 
 import sys
 import click
-import shlex
 import select
 import subprocess
 from . import helpers
+from .faketty import apply_faketty
 
 
 # Module API
@@ -52,7 +52,7 @@ def execute_async(commands, environ, multiplex=False, quiet=False, faketty=False
 
         # Create process
         process = subprocess.Popen(
-            _apply_faketty(command.code, faketty=faketty), bufsize=64, env=environ,
+            apply_faketty(command.code, faketty=faketty), bufsize=64, env=environ,
             shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         # Create listener
@@ -91,12 +91,6 @@ def execute_async(commands, environ, multiplex=False, quiet=False, faketty=False
 
 
 # Internal
-
-def _apply_faketty(code, faketty=False):
-    if faketty:
-        code = "python -m run.faketty /bin/bash -c %s" % shlex.quote(code)
-    return code
-
 
 def _print_line(line, name, color, multiplex=False, quiet=False):
     line = line.replace(b'\r\n', b'\n')
