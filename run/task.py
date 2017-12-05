@@ -19,7 +19,7 @@ class Task(object):
         self._parent = parent
 
         # Prepare
-        desc = None
+        desc = '' if parent else 'General run description'
         name, code = list(descriptor.items())[0]
         if isinstance(code, dict):
             desc = code['desc']
@@ -36,15 +36,24 @@ class Task(object):
             name = ''.join(name.rsplit('!', 1))
             quiet = True
 
-        # Name/type/childs
-        childs = []
+        # Directive type
         type = 'directive'
+
+        # Variable type
         if name.isupper():
             type = 'variable'
-        elif isinstance(code, list):
+            desc = 'Prints the variable'
+
+        # Sequence type
+        childs = []
+        if isinstance(code, list):
             type = 'sequence'
+
+            # Parent type
             if parent_type in ['parallel', 'multiplex']:
                 type = parent_type
+
+            # Parallel type
             if name.startswith('(') and name.endswith(')'):
                 if len(self.parents) >= 2:
                     message = 'Subtask descriptions and execution control not supported'
@@ -52,22 +61,22 @@ class Task(object):
                     exit(1)
                 name = name[1:-1]
                 type = 'parallel'
+
+            # Multiple type
             if name.startswith('(') and name.endswith(')'):
                 name = name[1:-1]
                 type = 'multiplex'
+
+            # Create childs
             for descriptor in code:
                 if not isinstance(descriptor, dict):
                     descriptor = {'': descriptor}
                 child = Task(descriptor,
                     options=options, parent=self, parent_type=type, quiet=quiet)
                 childs.append(child)
-            code = None
 
-        # Description
-        if not parent:
-            desc = 'General run description'
-        if type == 'variable':
-            desc = 'Prints the variable'
+            # Reset code
+            code = None
 
         # Set attributes
         self._name = name
