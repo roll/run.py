@@ -16,9 +16,6 @@ class Command(object):
         self._code = code
         self._variable = variable
 
-    def __repr__(self):
-        return self._name
-
     @property
     def name(self):
         return self._name

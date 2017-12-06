@@ -88,9 +88,6 @@ class Task(object):
         self._options = options
         self._optional = optional
 
-    def __repr__(self):
-        return self.qualified_name
-
     @property
     def name(self):
         return self._name

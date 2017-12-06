@@ -20,9 +20,6 @@ class Plan(object):
         self._commands = commands
         self._mode = mode
 
-    def __repr__(self):
-        return self._commands
-
     def explain(self):
 
         # Explain
