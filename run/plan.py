@@ -52,7 +52,7 @@ class Plan(object):
         executors.execute_sync(variables,
             environ=os.environ, quiet=quiet)
         if not commands:
-            print(os.environ[varnames[-1]])
+            print(os.environ[command.variable])
             return
 
         # Update environ
